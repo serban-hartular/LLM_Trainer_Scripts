@@ -32,7 +32,7 @@ for feature in features:
 
     print('Loading dataset')
 
-    count = 10
+    count = None
 
     ds_orig = datasets.load_dataset(dataset_source)
     ds = ds_orig
