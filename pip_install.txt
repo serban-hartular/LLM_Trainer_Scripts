@@ -1,1 +1,1 @@
-pip install torch transformers datasets evaluate huggingface_hub sklearn
+pip install torch transformers datasets evaluate huggingface_hub scikit-learn

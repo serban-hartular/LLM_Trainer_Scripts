@@ -17,7 +17,7 @@ features = ['Gender', 'Number', 'Case', ]
 suffix = '-v2'
 
 
-for feature in features:
+for feature in ['All']:
 
     task = 'text-classification'
     model_source = "dumitrescustefan/bert-base-romanian-cased-v1"
