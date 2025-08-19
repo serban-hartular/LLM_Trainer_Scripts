@@ -1,4 +1,7 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline, BitsAndBytesConfig
+6 vCPUs, 64 GB, 350 GB NVMe, Frankfurt, $0.48/h?
+vcg-a16-6c-64g-16vram
+
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 tokenizer = AutoTokenizer.from_pretrained("OpenLLM-Ro/RoLlama2-7b-Instruct")
 
@@ -13,7 +16,9 @@ chat = [
         ]
 prompt = tokenizer.apply_chat_template(chat, tokenize=False)
 
-inputs = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
-outputs = model.generate(input_ids=inputs, max_new_tokens=128)
-print(tokenizer.decode(outputs[0]))
+tok = tokenizer(prompt, add_special_tokens=True, return_tensors="pt")
+out = model.generate(**tok, max_new_tokens=128)
+print(tokenizer.decode(out[0]))
+
+
 
