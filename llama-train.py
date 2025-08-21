@@ -8,10 +8,10 @@ from transformers import TrainingArguments
 max_seq_length = 1024 # Can increase for longer reasoning traces
 lora_rank = 16 # Larger rank = smarter, but slower
 orig_model_path = 'OpenLLM-Ro/RoLlama3.1-8b-Instruct'
-mask = 0b1101101101
+mask = 0b111111111
 out_model_name = f'roLlama3-Instruct-Grammar-{mask:04X}'
 
-COUNT = 10000
+COUNT = 50000
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = orig_model_path,
@@ -48,14 +48,20 @@ for split in ds_orig.keys():
                                'response':d['good_text']} for is_good in (False, True)])
         ds_dict[split] = datasets.Dataset.from_list(data_list)
 
-def preprocess_function(examples : list[dict]) -> list[dict]:
-    return [{'text':tokenizer.apply_chat_template(
-        conversation=[
-            {"role":"user", "content":ex['input']},
-            {"role":"assistant", "content":ex['response']},
-        ], tokenize=False)}
-            for ex in examples]
+# def preprocess_function(examples : list[dict]) -> list[dict]:
+#     return [{'text':tokenizer.apply_chat_template(
+#         conversation=[
+#             {"role":"user", "content":ex['input']},
+#             {"role":"assistant", "content":ex['response']},
+#         ], tokenize=False)}
+#             for ex in examples]
 
+def preprocess_function(ex) -> list[str]:
+    return [tokenizer.apply_chat_template(
+        conversation=[
+            {"role":"user", "content":in_str},
+            {"role":"assistant", "content":res_str},
+        ], tokenize=False) for in_str, res_str in zip(ex['input'], ex['response'])]
 
 ds_train = ds_dict['train'].shuffle().select(range(COUNT))
 
@@ -77,8 +83,9 @@ args=TrainingArguments(
 
 trainer=SFTTrainer(model=model,
                    tokenizer=tokenizer,
+                   formatting_func=preprocess_function,
                    train_dataset=ds_train,
-                   dataset_text_field="text",
+                   #dataset_text_field="text",
                    max_seq_length=max_seq_length,
                    args=args,
     # dataset_num_proc=2,
@@ -94,5 +101,3 @@ model.push_to_hub_merged(out_model_name+'-LORA', tokenizer, save_method="lora")
 
 model.save_pretrained_merged(out_model_name, tokenizer, save_method="merged_16bit")
 model.push_to_hub_merged(out_model_name, tokenizer, save_method="merged_16bit")
-
-model.push_to_hub_gguf(out_model_name+"-GGUF", tokenizer, 'q4_k_m')
