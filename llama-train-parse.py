@@ -8,10 +8,7 @@ from transformers import TrainingArguments
 max_seq_length = 1024 # Can increase for longer reasoning traces
 lora_rank = 16 # Larger rank = smarter, but slower
 orig_model_path = 'OpenLLM-Ro/RoLlama3.1-8b-Instruct'
-mask = 0b111111111
-out_model_name = f'roLlama3-Instruct-Grammar-{mask:04X}'
-
-COUNT = 50000
+out_model_name = f'roLlama3-Instruct-Parse-dev'
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = orig_model_path,
@@ -34,27 +31,10 @@ model = FastLanguageModel.get_peft_model(
     random_state = 1,
 )
 
-ds_orig = datasets.load_dataset('hartular/rrt-grammatical_errors-split')
+ds_orig = datasets.load_dataset('hartular/rrt-parse0-dev')
 
-ds_orig = ds_orig.filter(lambda ex: (0x01 << ex['error_class']) & mask)
+ds_train = ds_orig['train']
 
-# transform to good_good and good_bad pairs
-ds_dict = datasets.DatasetDict()
-for split in ds_orig.keys():
-        orig_data = ds_orig[split].to_list()
-        data_list = []
-        for d in orig_data:
-            data_list.extend([{'input':d['good_text' if is_good else 'bad_text'],
-                               'response':d['good_text']} for is_good in (False, True)])
-        ds_dict[split] = datasets.Dataset.from_list(data_list)
-
-# def preprocess_function(examples : list[dict]) -> list[dict]:
-#     return [{'text':tokenizer.apply_chat_template(
-#         conversation=[
-#             {"role":"user", "content":ex['input']},
-#             {"role":"assistant", "content":ex['response']},
-#         ], tokenize=False)}
-#             for ex in examples]
 
 def preprocess_function(ex) -> list[str]:
     return [tokenizer.apply_chat_template(
@@ -63,7 +43,7 @@ def preprocess_function(ex) -> list[str]:
             {"role":"assistant", "content":res_str},
         ], tokenize=False) for in_str, res_str in zip(ex['input'], ex['response'])]
 
-ds_train = ds_dict['train'].shuffle().select(range(COUNT))
+# ds_train = ds_dict['train'].shuffle().select(range(COUNT))
 
 args=TrainingArguments(
         learning_rate=3e-4,
