@@ -8,7 +8,9 @@ from transformers import TrainingArguments
 max_seq_length = 1024 # Can increase for longer reasoning traces
 lora_rank = 16 # Larger rank = smarter, but slower
 orig_model_path = 'OpenLLM-Ro/RoLlama3.1-8b-Instruct'
-out_model_name = f'roLlama3-Instruct-Parse-dev'
+out_model_name = 'roLlama3-Instruct-Parse-v0'
+
+NUM_EPOCHS = 2
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = orig_model_path,
@@ -31,7 +33,7 @@ model = FastLanguageModel.get_peft_model(
     random_state = 1,
 )
 
-ds_orig = datasets.load_dataset('hartular/rrt-parse0-dev')
+ds_orig = datasets.load_dataset('hartular/rrt-parse0-v0')
 
 ds_train = ds_orig['train']
 
@@ -50,7 +52,7 @@ args=TrainingArguments(
         lr_scheduler_type="linear",
         per_device_train_batch_size=8,
         gradient_accumulation_steps=2,
-        num_train_epochs=1,
+        num_train_epochs=NUM_EPOCHS,
         fp16=not unsloth.is_bfloat16_supported(),
         bf16=unsloth.is_bfloat16_supported(),
         logging_steps=1,
@@ -74,10 +76,10 @@ trainer=SFTTrainer(model=model,
 
 trainer.train()
 
-model = FastLanguageModel.for_inference(model)
+# model = FastLanguageModel.for_inference(model)
 
 # model.save_pretrained_merged(out_model_name+'-LORA', tokenizer, save_method="lora")
 # model.push_to_hub_merged(out_model_name+'-LORA', tokenizer, save_method="lora")
 
 model.save_pretrained_merged(out_model_name, tokenizer, save_method="merged_16bit")
-model.push_to_hub_merged(out_model_name, tokenizer, save_method="merged_16bit")
+model.push_to_hub_merged('hartular/'+out_model_name, tokenizer, save_method="merged_16bit")

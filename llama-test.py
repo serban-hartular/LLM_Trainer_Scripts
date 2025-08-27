@@ -17,3 +17,8 @@ inputs = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="pt")
 outputs = model.generate(input_ids=inputs, max_new_tokens=128)
 print(tokenizer.decode(outputs[0]))
 
+def get_response(msg : str) -> str:
+    msg = [{'role':'user', 'content':msg}]
+    inputs = tokenizer.apply_chat_template(msg, tokenize=True, return_tensors="pt",).to("cuda")
+    out = model.generate(input_ids=inputs, max_new_tokens=128, use_cache=True)
+    return tokenizer.decode(out[0])
