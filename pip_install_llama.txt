@@ -2,7 +2,7 @@ apt install python3.12-venv
 python3 -m venv ./venv
 source ./venv/bin/activate
 pip install unsloth vllm
-pip install torch transformers tiktoken blobfile protobuf sentencepiece bitsandbytes
+# pip install torch transformers tiktoken blobfile protobuf sentencepiece bitsandbytes
 python login.py
 # python -i llama-test.py
 

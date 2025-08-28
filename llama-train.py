@@ -8,10 +8,11 @@ from transformers import TrainingArguments
 max_seq_length = 1024 # Can increase for longer reasoning traces
 lora_rank = 16 # Larger rank = smarter, but slower
 orig_model_path = 'OpenLLM-Ro/RoLlama3.1-8b-Instruct'
-mask = 0b111111111
-out_model_name = f'roLlama3-Instruct-Grammar-{mask:04X}'
+mask = 0b11011011011011
+out_model_name = f'roLlama3-Instruct-GrammarBinary-{mask:04X}'
+NUM_EPOCHS=2
 
-COUNT = 50000
+COUNT = 35000
 
 model, tokenizer = FastLanguageModel.from_pretrained(
     model_name = orig_model_path,
@@ -44,8 +45,10 @@ for split in ds_orig.keys():
         orig_data = ds_orig[split].to_list()
         data_list = []
         for d in orig_data:
-            data_list.extend([{'input':d['good_text' if is_good else 'bad_text'],
-                               'response':d['good_text']} for is_good in (False, True)])
+        #    data_list.extend([{'input':d['good_text' if is_good else 'bad_text'],
+        #                       'response':d['good_text']} for is_good in (False, True)])
+            data_list.extend([{'input':d['good_text'], 'response':'1'},
+                              {'input':d['bad_text'], 'response':'0'}])
         ds_dict[split] = datasets.Dataset.from_list(data_list)
 
 # def preprocess_function(examples : list[dict]) -> list[dict]:
@@ -70,7 +73,7 @@ args=TrainingArguments(
         lr_scheduler_type="linear",
         per_device_train_batch_size=8,
         gradient_accumulation_steps=2,
-        num_train_epochs=1,
+        num_train_epochs=NUM_EPOCHS,
         fp16=not unsloth.is_bfloat16_supported(),
         bf16=unsloth.is_bfloat16_supported(),
         logging_steps=1,
@@ -100,4 +103,4 @@ model = FastLanguageModel.for_inference(model)
 # model.push_to_hub_merged(out_model_name+'-LORA', tokenizer, save_method="lora")
 
 model.save_pretrained_merged(out_model_name, tokenizer, save_method="merged_16bit")
-model.push_to_hub_merged(out_model_name, tokenizer, save_method="merged_16bit")
+model.push_to_hub_merged('hartular/'+out_model_name, tokenizer, save_method="merged_16bit")
